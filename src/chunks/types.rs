@@ -1,6 +1,7 @@
 use core::fmt::Debug;
 use std::io::{Read, Seek, SeekFrom};
 
+use bitvec::prelude::*;
 use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
 
 fn char_vec_to_string_le(v: &Vec<u8>, reversed: bool) -> String {
@@ -89,6 +90,68 @@ pub struct ChunkWrapper {
     pub size: u32,
     #[br(count = size)]
     pub data: Vec<u8>,
+}
+
+const MPHD_FLAG_USES_GLOBAL_MAP_OBJ: u32 = 0x01;
+const MPHD_FLAG_ADT_HAS_MCCV: u32 = 0x2;
+const MPHD_FLAG_ADT_HAS_BIG_ALPHA: u32 = 0x4;
+const MPHD_FLAG_ADT_HAS_DOODADS_SORTED_BY_SIZE: u32 = 0x8;
+const MPHD_FLAG_LIGHTING_VERTICES: u32 = 0x10;
+const MPHD_FLAG_UPSIDE_DOWN_GROUND: u32 = 0x20;
+const MPHD_FLAG_UNK: u32 = 0x40;
+const MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING: u32 = 0x80;
+
+#[derive(Debug)]
+pub struct MPHDFlags {
+    pub has_height_texturing: bool,
+}
+
+impl BinRead for MPHDFlags {
+    type Args = ();
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        options: &binread::ReadOptions,
+        args: Self::Args,
+    ) -> binread::BinResult<Self> {
+        let i: u32 = reader.read_le()?;
+
+        let unk = i & MPHD_FLAG_UNK == MPHD_FLAG_UNK;
+        let has_height_texturing = i & MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING == MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING;
+
+        Ok(Self {
+            has_height_texturing: has_height_texturing || unk,
+        })
+    }
+} 
+
+#[derive(Debug, BinRead)]
+#[br(little)]
+pub struct MPHD {
+    /*
+        uint32_t version;
+        uint32_t flags;
+        uint32_t something;
+        uint32_t unused[6];
+    */
+    pub version: u32,
+    pub flags: MPHDFlags,
+    pub _something: u32,
+    pub _unused: u32,
+}
+
+#[derive(Debug, BinRead)]
+#[br(little)]
+pub struct MAINTile {
+    pub has_adt: u32,
+    pub flag_loaded: u32,
+}
+
+#[derive(Debug, BinRead)]
+#[br(little)]
+pub struct MAIN {
+    #[br(count = 4096)]
+    pub tiles: Vec<MAINTile>,
 }
 
 #[derive(Debug, BinRead)]
@@ -274,9 +337,35 @@ pub struct MODF {
     #[br(parse_with = read_until_end)]
     pub parts: Vec<MODFPart>,
 }
+
+const MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP: u32 = 0x200;
+
+#[derive(Debug)]
+pub struct MCNKFlags {
+    pub do_not_fix_alpha_map: bool,
+}
+
+impl BinRead for MCNKFlags {
+    type Args = ();
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        options: &binread::ReadOptions,
+        args: Self::Args,
+    ) -> binread::BinResult<Self> {
+        let i: u32 = reader.read_le()?;
+
+        let do_not_fix_alpha_map = i & MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP == MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP;
+
+        Ok(Self {
+            do_not_fix_alpha_map
+        })
+    }
+} 
+
 #[derive(Debug)]
 pub struct MCNK {
-    pub flags: u32,
+    pub flags: MCNKFlags,
 
     pub x: u32,
     pub y: u32,
@@ -316,25 +405,21 @@ pub struct MCNK {
     pub mcnr: MCNR,
     pub mcly: MCLY,
     pub mcrf: MCRF,
-    // pub mcal: MCAL,
+    pub mcal: MCAL,
 }
 
 // BinRead has to be manually implemented instead of derived for MCNK,
 // as the MCAL subchunk requires flags from the MCLY subchunk,
 // as well as flags from the WDT file.
 impl BinRead for MCNK {
-    type Args = ();
-
-    fn args_default() -> Option<Self::Args> {
-        Some(())
-    }
+    type Args = (bool, );
 
     fn read_options<R: Read + Seek>(
         reader: &mut R,
         options: &ReadOptions,
         args: Self::Args,
     ) -> BinResult<Self> {
-        let flags: u32 = reader.read_le()?;
+        let flags: MCNKFlags = reader.read_le()?;
 
         let x: u32 = reader.read_le()?;
         let y: u32 = reader.read_le()?;
@@ -386,10 +471,17 @@ impl BinRead for MCNK {
         let mcrf: MCRF = reader.read_le_args((n_doodad_refs, n_map_obj_refs))?;
 
         reader.seek(SeekFrom::Start(ofs_alpha.into()))?;
-        let mcal_layers: Vec<MCALLayer> = Vec::new();
-        // let mcal = MCAL {
-        //     layers: mcal_layers,
-        // };
+        let mut mcal_subchunk = vec![0; size_alpha.try_into().unwrap()];
+        reader.read_exact(&mut mcal_subchunk)?;
+
+        let mut mcal_reader = std::io::Cursor::new(mcal_subchunk);
+        let mut mcal_layers: Vec<MCALLayer> = Vec::new();
+        for l in mcly.layers.iter() {
+            if l.flags.use_alpha {
+                mcal_layers.push(mcal_reader.read_le_args::<MCALLayer>((args.0, l.flags.alpha_compressed,))?);
+            }
+        }
+        let mcal: MCAL = MCAL { layers: mcal_layers };
 
         Ok(Self {
             flags,
@@ -429,6 +521,7 @@ impl BinRead for MCNK {
             mcnr,
             mcly,
             mcrf,
+            mcal,
         })
     }
 }
@@ -474,10 +567,10 @@ mod mcly_flags {
 
     #[derive(Debug)]
     pub struct MCLYFlags {
-        animate_45: bool,
-        animate_90: bool,
-        use_alpha: bool,
-        alpha_compressed: bool,
+        pub animate_45: bool,
+        pub animate_90: bool,
+        pub use_alpha: bool,
+        pub alpha_compressed: bool,
     }
 
     impl BinRead for MCLYFlags {
@@ -528,9 +621,83 @@ pub struct MCRF {
     n_map_obj_refs: Vec<u32>,
 }
 
+#[derive(Debug)]
 pub struct MCALLayer {
-    texture_id: u32,
-    flags: u32,
-    offset_in_mcal: u32,
-    effect_id: u32,
+    alpha_map: Vec<u8>,
+}
+
+impl BinRead for MCALLayer {
+    type Args = (bool, bool, );
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        options: &ReadOptions,
+        args: Self::Args,
+    ) -> BinResult<Self> {
+        let (full_size, compressed) = args;
+        
+        let decompressed = match compressed {
+            true => {
+                let mut data: Vec<u8> = Vec::new();
+                loop {
+                    if let Ok(count_and_mode) = reader.read_be::<u8>() {
+                        let fill = count_and_mode & 0x80 == 0x80;
+                        let count = count_and_mode & 0x7F;
+
+                        // fill
+                        if fill {
+                            let value = reader.read_le::<u8>()?;
+                            for _ in 0..count {
+                                data.push(value);
+                            }
+                        }
+                        // copy
+                        else {
+                            for _ in 0..count {
+                                let value = reader.read_le::<u8>()?;
+                                data.push(value);
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                data 
+            },
+            _ => {
+                let mut data = if full_size {vec![0; 4096]} else {vec![0; 2048]};
+                reader.read_exact(&mut data)?;
+
+                data
+            },
+        };
+
+        let mut decompressed_reader = std::io::Cursor::new(decompressed);
+        let mut alpha_map: Vec<u8> = Vec::new();
+        if full_size {
+            while alpha_map.len() < 2048 {
+                let byte: u8 = decompressed_reader.read_le()?;
+                alpha_map.push(byte);
+            }
+        } else {
+            while alpha_map.len() < 4096 {
+                let byte: u8 = decompressed_reader.read_le()?;
+                let bit_slice = BitSlice::<u8, Lsb0>::from_element(&byte);
+                let (left, right) = bit_slice.split_at(4);
+
+                alpha_map.push(left.load::<u8>());
+                alpha_map.push(right.load::<u8>());
+            }
+        }
+
+        Ok(Self {
+            alpha_map,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct MCAL {
+    layers: Vec<MCALLayer>,
 }
