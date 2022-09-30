@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use binread::{BinReaderExt, io::Cursor};
 
-use crate::{error::Error};
+use crate::error::Error;
 
 pub mod macros;
 pub mod types;

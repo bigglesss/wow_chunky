@@ -74,7 +74,7 @@ pub struct CAaBox {
     max: C3Vector,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Copy, Debug, BinRead)]
 #[br(little)]
 pub struct C3Vector {
     x: f32,
@@ -416,7 +416,7 @@ impl BinRead for MCNK {
 
     fn read_options<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+        _: &ReadOptions,
         args: Self::Args,
     ) -> BinResult<Self> {
         let flags: MCNKFlags = reader.read_le()?;
@@ -459,7 +459,7 @@ impl BinRead for MCNK {
         let _unused2: u32 = reader.read_le()?;
 
         reader.seek(SeekFrom::Start(ofs_height.into()))?;
-        let mcvt: MCVT = reader.read_le()?;
+        let mcvt: MCVT = reader.read_le_args((position, ))?;
 
         reader.seek(SeekFrom::Start(ofs_normal.into()))?;
         let mcnr: MCNR = reader.read_le()?;
@@ -526,11 +526,38 @@ impl BinRead for MCNK {
     }
 }
 
+static ADT_SIZE: f32 = 533.0 + (1.0 / 3.0);
+static QUAD_SIZE: f32 = ADT_SIZE / 128.0;
+
+pub fn parse_heightmap(raw: Vec<f32>, offset: C3Vector) -> Vec<C3Vector> {
+    let mut parsed: Vec<C3Vector> = Vec::new();
+    for (i, height) in raw.iter().enumerate() {
+        // if i % 17 > 8, this is the inner part of a quad
+        let inner = (i % 17) > 8;
+
+        let i: i32 = i.try_into().unwrap();
+
+        let x: i32 = if inner {(i - 9) % 17} else {i % 17};
+        let y: i32 = i / 17;
+
+        let inner_offset: f32 = if inner {QUAD_SIZE / 2.0} else {0.0};
+
+        let z: f32 = offset.z + height;
+
+        let world_x = offset.x - ((y as f32) * QUAD_SIZE) - inner_offset;
+        let world_y = offset.y - ((x as f32) * QUAD_SIZE) - inner_offset;
+
+        parsed.push(C3Vector { x: world_x, y: world_y, z });
+    }
+
+    parsed
+}
+
 #[derive(Debug, BinRead)]
-#[br(little)]
+#[br(little, import(offset: C3Vector))]
 pub struct MCVT {
-    #[br(count = 145)]
-    height: Vec<f32>,
+    #[br(count = 145, map = |raw: Vec<f32>| parse_heightmap(raw, offset))]
+    height: Vec<C3Vector>,
 }
 
 #[derive(Debug, BinRead)]
