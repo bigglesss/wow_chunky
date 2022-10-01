@@ -4,93 +4,7 @@ use std::io::{Read, Seek, SeekFrom};
 use bitvec::prelude::*;
 use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
 
-fn char_vec_to_string_le(v: &Vec<u8>, reversed: bool) -> String {
-    if reversed {
-        v.iter().rev().map(|v| char::from(*v)).collect::<String>()
-    } else {
-        v.iter().map(|v| char::from(*v)).collect::<String>()
-    }
-}
-
-fn token_parse<R: Read + Seek>(reader: &mut R, _ro: &ReadOptions, _: ()) -> BinResult<String> {
-    // Read 4 u8s into a buffer.
-    let mut token = vec![0; 4];
-    reader.read_exact(&mut token)?;
-
-    // Parse by reversing the buffer and converting to a String.
-    let string = char_vec_to_string_le(&token, true);
-
-    Ok(string)
-}
-
-fn zero_terminated_strings<R: Read + Seek>(
-    reader: &mut R,
-    _: &ReadOptions,
-    _: (),
-) -> BinResult<Vec<String>> {
-    let mut strings: Vec<String> = Vec::new();
-    let mut string_buf: Vec<u8> = Vec::new();
-
-    loop {
-        match reader.read_le::<u8>() {
-            Ok(v) => {
-                if v != u8::MIN {
-                    string_buf.push(v);
-                } else {
-                    strings.push(char_vec_to_string_le(&string_buf, false));
-                    string_buf.clear();
-                }
-            }
-            Err(_) => break,
-        }
-    }
-
-    Ok(strings)
-}
-
-fn read_until_end<R: Read + Seek, T: BinRead>(
-    reader: &mut R,
-    _: &ReadOptions,
-    _: (),
-) -> BinResult<Vec<T>> {
-    let mut values: Vec<T> = Vec::new();
-
-    loop {
-        match reader.read_le::<T>() {
-            Ok(v) => {
-                values.push(v);
-            }
-            Err(_) => break,
-        }
-    }
-
-    Ok(values)
-}
-
-#[derive(Debug, BinRead)]
-#[br(little)]
-pub struct CAaBox {
-    min: C3Vector,
-    max: C3Vector,
-}
-
-#[derive(Clone, Copy, Debug, BinRead)]
-#[br(little)]
-pub struct C3Vector {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-#[derive(Debug, BinRead)]
-#[br(little)]
-pub struct ChunkWrapper {
-    #[br(parse_with = token_parse)]
-    pub token: String,
-    pub size: u32,
-    #[br(count = size)]
-    pub data: Vec<u8>,
-}
+pub mod shared;
 
 const MPHD_FLAG_USES_GLOBAL_MAP_OBJ: u32 = 0x01;
 const MPHD_FLAG_ADT_HAS_MCCV: u32 = 0x2;
@@ -219,7 +133,7 @@ pub struct MTEX {
     /*
     char filenames[0];              // zero-terminated strings with complete paths to textures. Referenced in MCLY.
     */
-    #[br(parse_with = zero_terminated_strings)]
+    #[br(parse_with = shared::zero_terminated_strings)]
     pub filenames: Vec<String>,
 }
 
@@ -229,7 +143,7 @@ pub struct MMDX {
     /*
     char filenames[0];              // zero-terminated strings with complete paths to models. Referenced in MMID.
     */
-    #[br(parse_with = zero_terminated_strings)]
+    #[br(parse_with = shared::zero_terminated_strings)]
     pub filenames: Vec<String>,
 }
 
@@ -239,7 +153,7 @@ pub struct MMID {
     /*
     uint32_t offsets[0];            // filename starting position in MMDX chunk. These entries are getting referenced in the MDDF chunk.
     */
-    #[br(parse_with = read_until_end)]
+    #[br(parse_with = shared::read_until_end)]
     pub offsets: Vec<u32>,
 }
 
@@ -249,7 +163,7 @@ pub struct MWMO {
     /*
     char filenames[0];              // zero-terminated strings with complete paths to models. Referenced in MWID.
     */
-    #[br(parse_with = zero_terminated_strings)]
+    #[br(parse_with = shared::zero_terminated_strings)]
     pub filenames: Vec<String>,
 }
 
@@ -259,7 +173,7 @@ pub struct MWID {
     /*
     uint32_t offsets[0];            // filename starting position in MWMO chunk. These entries are getting referenced in the MODF chunk.
     */
-    #[br(parse_with = read_until_end)]
+    #[br(parse_with = shared::read_until_end)]
     pub offsets: Vec<u32>,
 }
 
@@ -279,24 +193,24 @@ pub struct MDDFPart {
                                      if flag mddf_entry_is_filedata_id is set, a file data id instead, ignoring MMID.
     uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map. Blizzard has
                                      these unique for the whole game.
-    C3Vectorⁱ position;           // This is relative to a corner of the map. Subtract 17066 from the non vertical values and you should start to see
+   shared::C3Vectorⁱ position;           // This is relative to a corner of the map. Subtract 17066 from the non vertical values and you should start to see
                                      something that makes sense. You'll then likely have to negate one of the non vertical values in whatever
                                      coordinate system you're using to finally move it into place.
-    C3Vectorⁱ rotation;           // degrees. This is not the same coordinate system orientation like the ADT itself! (see history.)
+   shared::C3Vectorⁱ rotation;           // degrees. This is not the same coordinate system orientation like the ADT itself! (see history.)
     uint16_t scale;               // 1024 is the default size equaling 1.0f.
     uint16_t flags;               // values from enum MDDFFlags.
     */
     pub name_id: u32,
     pub unique_id: u32,
-    pub position: C3Vector,
-    pub rotation: C3Vector,
+    pub position: shared::C3Vector,
+    pub rotation: shared::C3Vector,
     pub scale: u16,
     pub flags: MDDFFlags,
 }
 #[derive(Debug, BinRead)]
 #[br(little)]
 pub struct MDDF {
-    #[br(parse_with = read_until_end)]
+    #[br(parse_with = shared::read_until_end)]
     pub parts: Vec<MDDFPart>,
 }
 
@@ -313,8 +227,8 @@ pub struct MODFPart {
     /*
     uint32_t nameId;              // references an entry in the MWID chunk, specifying the model to use.
     uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map.
-    C3Vectorⁱ position;
-    C3Vectorⁱ rotation;           // same as in MDDF.
+   shared::C3Vectorⁱ position;
+   shared::C3Vectorⁱ rotation;           // same as in MDDF.
     CAaBoxⁱ extents;              // position plus the transformed wmo bounding box. used for defining if they are rendered as well as collision.
     uint16_t flags;               // values from enum MODFFlags.
     uint16_t doodadSet;           // which WMO doodad set is used. Traditionally references WMO#MODS_chunk, if modf_use_sets_from_mwds is set, references #MWDR_.28Shadowlands.2B.29
@@ -323,9 +237,9 @@ pub struct MODFPart {
     */
     pub name_id: u32,
     pub unique_id: u32,
-    pub position: C3Vector,
-    pub rotation: C3Vector,
-    pub extends: CAaBox,
+    pub position: shared::C3Vector,
+    pub rotation: shared::C3Vector,
+    pub extends: shared::CAaBox,
     pub scale: u16,
     pub flags: MODFFlags,
     pub doodat_set: u16,
@@ -334,7 +248,7 @@ pub struct MODFPart {
 #[derive(Debug, BinRead)]
 #[br(little)]
 pub struct MODF {
-    #[br(parse_with = read_until_end)]
+    #[br(parse_with = shared::read_until_end)]
     pub parts: Vec<MODFPart>,
 }
 
@@ -397,7 +311,7 @@ pub struct MCNK {
     pub ofs_liquid: u32,
     pub size_liquid: u32,
 
-    pub position: C3Vector,
+    pub position: shared::C3Vector,
     pub ofs_mccv: u32,
 
     // Subchunks:
@@ -453,7 +367,7 @@ impl BinRead for MCNK {
         let ofs_liquid: u32 = reader.read_le()?;
         let size_liquid: u32 = reader.read_le()?;
 
-        let position: C3Vector = reader.read_le()?;
+        let position: shared::C3Vector = reader.read_le()?;
         let ofs_mccv: u32 = reader.read_le()?;
         let _unused: u32 = reader.read_le()?;
         let _unused2: u32 = reader.read_le()?;
@@ -529,8 +443,8 @@ impl BinRead for MCNK {
 static ADT_SIZE: f32 = 533.0 + (1.0 / 3.0);
 static QUAD_SIZE: f32 = ADT_SIZE / 128.0;
 
-pub fn parse_heightmap(raw: Vec<f32>, offset: C3Vector) -> Vec<C3Vector> {
-    let mut parsed: Vec<C3Vector> = Vec::new();
+pub fn parse_heightmap(raw: Vec<f32>, offset:shared::C3Vector) -> Vec<shared::C3Vector> {
+    let mut parsed: Vec<shared::C3Vector> = Vec::new();
     for (i, height) in raw.iter().enumerate() {
         // if i % 17 > 8, this is the inner part of a quad
         let inner = (i % 17) > 8;
@@ -547,32 +461,32 @@ pub fn parse_heightmap(raw: Vec<f32>, offset: C3Vector) -> Vec<C3Vector> {
         let world_x = offset.x - ((y as f32) * QUAD_SIZE) - inner_offset;
         let world_y = offset.y - ((x as f32) * QUAD_SIZE) - inner_offset;
 
-        parsed.push(C3Vector { x: world_x, y: world_y, z });
+        parsed.push(shared::C3Vector { x: world_x, y: world_y, z });
     }
 
     parsed
 }
 
 #[derive(Debug, BinRead)]
-#[br(little, import(offset: C3Vector))]
+#[br(little, import(offset:shared::C3Vector))]
 pub struct MCVT {
     #[br(count = 145, map = |raw: Vec<f32>| parse_heightmap(raw, offset))]
-    height: Vec<C3Vector>,
+    pub heights: Vec<shared::C3Vector>,
 }
 
 #[derive(Debug, BinRead)]
 #[br(little)]
 pub struct MCNREntry {
-    x: i8,
-    y: i8,
-    z: i8,
+    pub x: i8,
+    pub y: i8,
+    pub z: i8,
 }
 
 #[derive(Debug, BinRead)]
 #[br(little)]
 pub struct MCNR {
     #[br(count = 145)]
-    height: Vec<MCNREntry>,
+    pub normals: Vec<MCNREntry>,
 }
 
 // TODO: Add other flag modules.

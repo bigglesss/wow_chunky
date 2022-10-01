@@ -2,8 +2,9 @@ use clap::Parser;
 
 use std::path::PathBuf;
 
-pub mod chunks;
-pub mod error;
+mod types;
+mod error;
+mod parser;
 
 #[derive(Parser)]
 struct Cli {
@@ -18,10 +19,10 @@ fn main() {
     println!("{:#?}", file_path);
     if let Some(extension) = file_path.extension() {
         if extension == "adt" {
-            let adt = chunks::parse_adt(file_path, chunks::types::MPHDFlags{ has_height_texturing: false }).unwrap();
-            println!("{:#?}", adt.mcnk.last().unwrap().mcal);
+            let adt = parser::parse_adt(file_path, types::chunks::MPHDFlags{ has_height_texturing: false }).unwrap();
+            println!("{:#?}", adt.mcnk.last().unwrap().mcvt);
         } else if extension == "wdt" {
-            let wdt = chunks::parse_wdt(file_path).unwrap();
+            let wdt = parser::parse_wdt(file_path).unwrap();
             println!("{:#?}", wdt.mphd);
         }
     }
