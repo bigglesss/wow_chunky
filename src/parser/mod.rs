@@ -4,11 +4,14 @@ use binread::{BinReaderExt, io::Cursor};
 
 use crate::error::Error;
 use crate::types::chunks;
+use crate::types::blp;
 
 mod macros;
 
 #[derive(Debug, Default)]
 pub struct ADT {
+    pub key: String,
+
     pub mver: Option<chunks::MVER>,
     pub mhdr: Option<chunks::MHDR>,
     pub mcin: Option<chunks::MCIN>,
@@ -23,10 +26,16 @@ pub struct ADT {
 }
 
 pub fn parse_adt(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<ADT, Error> {
-    let file = std::fs::read(path).map_err(Error::IO)?;
+    let file = std::fs::read(&path).map_err(Error::IO)?;
+
+    let key = path.file_name().ok_or(Error::File(path.clone()))?
+        .to_string_lossy().to_string();
 
     let mut cursor = Cursor::new(file);
-    let mut parsed_adt = ADT::default();
+    let mut parsed_adt = ADT {
+        key,
+        ..Default::default()
+    };
 
     loop {
         if let Some(chunk_wrapper) = cursor.read_le::<chunks::shared::ChunkWrapper>().ok() {
@@ -96,4 +105,15 @@ fn parse_chunk_data_args<T: binread::BinRead>(chunk_data: &Vec<u8>, args: T::Arg
     let chunk_data: T = chunk_data_cursor.read_le_args(args).map_err(Error::Unknown)?;
 
     Ok(chunk_data)
+}
+
+pub fn parse_blp(path: PathBuf) -> Result<blp::BLP, Error> {
+    let file = std::fs::read(path).map_err(Error::IO)?;
+
+    let mut cursor = Cursor::new(file);
+
+    loop {
+        let parsed_blp: blp::BLP = cursor.read_le()?;
+        return Ok(parsed_blp);
+    }
 }

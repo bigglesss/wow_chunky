@@ -24,6 +24,9 @@ fn main() {
         } else if extension == "wdt" {
             let wdt = parser::parse_wdt(file_path).unwrap();
             println!("{:#?}", wdt.mphd);
+        } else if extension == "blp" {
+            let blp = parser::parse_blp(file_path).unwrap();
+            println!("{:?}", blp);
         }
     }
 }

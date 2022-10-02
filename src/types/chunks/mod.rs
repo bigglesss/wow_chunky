@@ -127,7 +127,7 @@ pub struct MCIN {
     */
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MTEX {
     /*
@@ -540,17 +540,17 @@ mod mcly_flags {
 #[derive(Debug, BinRead)]
 #[br(little)]
 pub struct MCLYLayer {
-    texture_id: u32,
-    flags: mcly_flags::MCLYFlags,
-    offset_in_mcal: u32,
-    effect_id: u32,
+    pub texture_id: u32,
+    pub flags: mcly_flags::MCLYFlags,
+    pub offset_in_mcal: u32,
+    pub effect_id: u32,
 }
 
 #[derive(Debug, BinRead)]
 #[br(little, import(n_layers: u32))]
 pub struct MCLY {
     #[br(count = n_layers)]
-    layers: Vec<MCLYLayer>,
+    pub layers: Vec<MCLYLayer>,
 }
 
 #[derive(Debug, BinRead)]
@@ -564,7 +564,7 @@ pub struct MCRF {
 
 #[derive(Debug)]
 pub struct MCALLayer {
-    alpha_map: Vec<u8>,
+    pub alpha_map: Vec<u8>,
 }
 
 impl BinRead for MCALLayer {
@@ -640,5 +640,5 @@ impl BinRead for MCALLayer {
 
 #[derive(Debug)]
 pub struct MCAL {
-    layers: Vec<MCALLayer>,
+    pub layers: Vec<MCALLayer>,
 }

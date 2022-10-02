@@ -1,2 +1,5 @@
 /target
 /test_data
+
+# blp test data
+*.png
