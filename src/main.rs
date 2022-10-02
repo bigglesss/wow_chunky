@@ -27,6 +27,9 @@ fn main() {
         } else if extension == "blp" {
             let blp = parser::parse_blp(file_path).unwrap();
             println!("{:?}", blp);
+        } else if extension == "bls" {
+            let bls = parser::parse_bls(file_path).unwrap();
+            println!("{:#?}", bls);
         }
     }
 }

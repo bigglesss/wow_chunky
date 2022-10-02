@@ -5,6 +5,7 @@ use binread::{BinReaderExt, io::Cursor};
 use crate::error::Error;
 use crate::types::chunks;
 use crate::types::blp;
+use crate::types::bls;
 
 mod macros;
 
@@ -115,5 +116,16 @@ pub fn parse_blp(path: PathBuf) -> Result<blp::BLP, Error> {
     loop {
         let parsed_blp: blp::BLP = cursor.read_le()?;
         return Ok(parsed_blp);
+    }
+}
+
+pub fn parse_bls(path: PathBuf) -> Result<bls::BLS, Error> {
+    let file = std::fs::read(path).map_err(Error::IO)?;
+
+    let mut cursor = Cursor::new(file);
+
+    loop {
+        let parsed_bls: bls::BLS = cursor.read_le()?;
+        return Ok(parsed_bls);
     }
 }
