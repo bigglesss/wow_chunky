@@ -11,7 +11,8 @@ use super::{parse_chunk_data,parse_chunk_data_args};
 
 #[derive(Debug, Default)]
 pub struct ADT {
-    pub key: String,
+    pub filename: String,
+    pub path: PathBuf,
 
     pub mver: Option<chunks::MVER>,
     pub mhdr: Option<chunks::MHDR>,
@@ -26,9 +27,15 @@ pub struct ADT {
     pub mcnk: Vec<chunks::MCNK>,
 }
 
-fn parse_adt_file(key: String, mut file: File, mphd_flags: chunks::MPHDFlags) -> Result<ADT, Error> {
+fn parse_adt_file(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<ADT, Error> {
+    let filename = path.file_name().ok_or(Error::File(path.clone()))?
+        .to_string_lossy().to_string();
+
+    let mut file = File::open(&path)?;
+
     let mut parsed_adt = ADT {
-        key,
+        filename,
+        path,
         ..Default::default()
     };
 
@@ -58,24 +65,18 @@ fn parse_adt_file(key: String, mut file: File, mphd_flags: chunks::MPHDFlags) ->
 }
 
 impl ADT {
-    pub fn from_file(path: &PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<Self, Error> {
-        let file = File::open(&path)?;
-
-        let key = path.file_name().ok_or(Error::File(path.clone()))?
-            .to_string_lossy().to_string();
-
-        Ok(parse_adt_file(key, file, mphd_flags)?) 
+    pub fn from_file(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<Self, Error> {
+        Ok(parse_adt_file(path, mphd_flags)?) 
     }
 
-    pub fn from_wdt_file(wdt_filename: &PathBuf, x: u32, y: u32) -> Result<Self, Error> {
-        let wdt = wdt::WDT::from_file(wdt_filename)?;
-
-        let adt_name = format!("{}_{}_{}.adt", wdt_filename.file_stem().and_then(|n| n.to_str()).expect("WDT should have a extension."), x, y);
-
+    pub fn from_wdt_file(wdt_filename: PathBuf, x: u32, y: u32) -> Result<Self, Error> {
+        let adt_name = format!("{}_{}_{}.adt", &wdt_filename.file_stem().and_then(|n| n.to_str()).expect("WDT should have a extension."), x, y);
         let adt_path = wdt_filename
             .parent().expect("WDT file should be in a folder with the ADT files.")
             .join(adt_name);
-        let adt = ADT::from_file(&adt_path, wdt.mphd.and_then(|chunk| Some(chunk.flags)).expect("WDT should have a valid MPHD chunk"))?;
+
+        let wdt = wdt::WDT::from_file(wdt_filename)?;
+        let adt = ADT::from_file(adt_path, wdt.mphd.and_then(|chunk| Some(chunk.flags)).expect("WDT should have a valid MPHD chunk"))?;
 
         Ok(adt)
     }

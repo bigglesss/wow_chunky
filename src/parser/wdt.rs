@@ -43,7 +43,7 @@ pub fn parse_wdt_file(key: String, mut file: File) -> Result<WDT, Error> {
 }
 
 impl WDT {
-    pub fn from_file(path: &PathBuf) -> Result<Self, Error> {
+    pub fn from_file(path: PathBuf) -> Result<Self, Error> {
         let file = File::open(&path)?;
 
         let key = path.file_name().ok_or(Error::File(path.clone()))?
