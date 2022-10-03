@@ -16,17 +16,16 @@ fn main() {
     let cli = Cli::parse();
     let file_path = cli.file;
 
-    println!("{:#?}", file_path);
     if let Some(extension) = file_path.extension() {
         if extension == "adt" {
-            let adt = parser::parse_adt(file_path, types::chunks::MPHDFlags{ has_height_texturing: false }).unwrap();
-            println!("{:#?}", adt.mcnk.last().unwrap().mcvt);
+            let adt = parser::adt::ADT::from_file(&file_path, types::chunks::MPHDFlags{ has_height_texturing: false }).unwrap();
+            println!("{:#?}", adt);
         } else if extension == "wdt" {
-            let wdt = parser::parse_wdt(file_path).unwrap();
-            println!("{:#?}", wdt.mphd);
+            let wdt = parser::wdt::WDT::from_file(&file_path).unwrap();
+            println!("{:#?}", wdt);
         } else if extension == "blp" {
             let blp = parser::parse_blp(file_path).unwrap();
-            println!("{:?}", blp);
+            println!("{:#?}", blp);
         } else if extension == "bls" {
             let bls = parser::parse_bls(file_path).unwrap();
             println!("{:#?}", bls);

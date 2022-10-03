@@ -489,59 +489,53 @@ pub struct MCNR {
     pub normals: Vec<MCNREntry>,
 }
 
-// TODO: Add other flag modules.
-mod mcly_flags {
-    use binread::BinRead;
-    use binread::BinReaderExt;
+const MCLY_FLAG_ANIMATE_45: u32 = 0x01;
+const MCLY_FLAG_ANIMATE_90: u32 = 0x2;
+const MCLY_FLAG_ANIMATE_180: u32 = 0x4;
+const MCLY_FLAG_ANIM_FAST: u32 = 0x8;
+const MCLY_FLAG_ANIM_FASTER: u32 = 0x10;
+const MCLY_FLAG_ANIM_FASTEST: u32 = 0x20;
+const MCLY_FLAG_ANIMATE: u32 = 0x40;
+const MCLY_FLAG_GLOW: u32 = 0x80;
+const MCLY_FLAG_USE_ALPHA: u32 = 0x100;
+const MCLY_FLAG_ALPHA_COMPRESSED: u32 = 0x200;
+const MCLY_FLAG_REFLECTION: u32 = 0x400;
 
-    const MCLY_FLAG_ANIMATE_45: u32 = 0x01;
-    const MCLY_FLAG_ANIMATE_90: u32 = 0x2;
-    const MCLY_FLAG_ANIMATE_180: u32 = 0x4;
-    const MCLY_FLAG_ANIM_FAST: u32 = 0x8;
-    const MCLY_FLAG_ANIM_FASTER: u32 = 0x10;
-    const MCLY_FLAG_ANIM_FASTEST: u32 = 0x20;
-    const MCLY_FLAG_ANIMATE: u32 = 0x40;
-    const MCLY_FLAG_GLOW: u32 = 0x80;
-    const MCLY_FLAG_USE_ALPHA: u32 = 0x100;
-    const MCLY_FLAG_ALPHA_COMPRESSED: u32 = 0x200;
-    const MCLY_FLAG_REFLECTION: u32 = 0x400;
-
-    #[derive(Debug)]
-    pub struct MCLYFlags {
-        pub animate_45: bool,
-        pub animate_90: bool,
-        pub use_alpha: bool,
-        pub alpha_compressed: bool,
-    }
-
-    impl BinRead for MCLYFlags {
-        type Args = ();
-
-        fn read_options<R: std::io::Read + std::io::Seek>(
-            reader: &mut R,
-            options: &binread::ReadOptions,
-            args: Self::Args,
-        ) -> binread::BinResult<Self> {
-            let i: u32 = reader.read_le()?;
-
-            let use_alpha = i & MCLY_FLAG_USE_ALPHA == MCLY_FLAG_USE_ALPHA;
-            let alpha_compressed = i & MCLY_FLAG_ALPHA_COMPRESSED == MCLY_FLAG_ALPHA_COMPRESSED;
-
-            Ok(Self {
-                animate_45: false,
-                animate_90: false,
-                use_alpha,
-                alpha_compressed,
-            })
-        }
-    } 
+#[derive(Debug)]
+pub struct MCLYFlags {
+    pub animate_45: bool,
+    pub animate_90: bool,
+    pub use_alpha: bool,
+    pub alpha_compressed: bool,
 }
+
+impl BinRead for MCLYFlags {
+    type Args = ();
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        options: &binread::ReadOptions,
+        args: Self::Args,
+    ) -> binread::BinResult<Self> {
+        let i: u32 = reader.read_le()?;
+
+        let use_alpha = i & MCLY_FLAG_USE_ALPHA == MCLY_FLAG_USE_ALPHA;
+        let alpha_compressed = i & MCLY_FLAG_ALPHA_COMPRESSED == MCLY_FLAG_ALPHA_COMPRESSED;
+
+        Ok(Self {
+            animate_45: false,
+            animate_90: false,
+            use_alpha,
+            alpha_compressed,
+        })
+    }
+} 
 
 #[derive(Debug, BinRead)]
 #[br(little)]
 pub struct MCLYLayer {
     pub texture_id: u32,
-    pub flags: mcly_flags::MCLYFlags,
+    pub flags: MCLYFlags,
     pub offset_in_mcal: u32,
     pub effect_id: u32,
 }
