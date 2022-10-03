@@ -610,12 +610,17 @@ impl BinRead for MCALLayer {
 
         let mut decompressed_reader = std::io::Cursor::new(decompressed);
         let mut alpha_map: Vec<u8> = Vec::new();
+
         if full_size {
-            while alpha_map.len() < 2048 {
+            while alpha_map.len() < 4096 {
                 let byte: u8 = decompressed_reader.read_le()?;
                 alpha_map.push(byte);
             }
-        } else {
+        }
+        else {
+            // Chunks marked as half-size (MPHD flags *not* set) need to have each
+            // u8 value splt in half, then converted back into u8s in order to construct
+            // the full 64x64 alpha map.
             while alpha_map.len() < 4096 {
                 let byte: u8 = decompressed_reader.read_le()?;
                 let bit_slice = BitSlice::<u8, Lsb0>::from_element(&byte);
