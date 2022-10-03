@@ -1,9 +1,7 @@
 use core::fmt::Debug;
-use std::{io::{Read, Seek, SeekFrom, BufWriter}, iter::zip, path::PathBuf, fs::File};
+use std::{io::{Read, Seek, SeekFrom}, iter::zip};
 
 use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
-
-use png::{BitDepth, ColorType, Transformations};
 
 #[derive(Debug, BinRead)]
 #[br(little)]
@@ -66,7 +64,7 @@ impl BinRead for Mipmap {
 
         match color_encoding {
             ColorEncoding::PALETTE => {
-                Ok(Self { decompressed: Vec::new() })
+                todo!();
             },
             ColorEncoding::DXT => {
                 let format = match alpha_compression {
@@ -93,32 +91,10 @@ impl BinRead for Mipmap {
                 let mut decompressed = vec![0u8; 4 * width * height];
                 format.decompress(&compressed, width, height, &mut decompressed);
 
-                // let mut decompressed_reader = std::io::Cursor::new(decompressed);
-                // let mut pixels: Vec<BLPPixel> = Vec::new();
-                // for _ in 0..256 {
-                //     pixels.push(decompressed_reader.read_le()?);
-                // }
-
-                // println!("{:?}", pixels);
-
-                // let outfile = PathBuf::new()
-                //     .with_file_name(format!("{}", layer))
-                //     .with_extension("png");
-
-                // let file = File::create(outfile).expect("Unable to create file");
-                // let w = &mut BufWriter::new(file);
-
-                // let mut encoder = png::Encoder::new(w, width as u32, height as u32);
-                // encoder.set_color(ColorType::Rgba);
-                // encoder.set_depth(BitDepth::Eight);
-                // let mut writer = encoder.write_header().unwrap();
-
-                // writer.write_image_data(&decompressed).unwrap();
-
                 Ok(Self { decompressed })
             },
             ColorEncoding::ARGB8888 | ColorEncoding::ARGB8888_=> {
-                Ok(Self { decompressed: Vec::new() })
+                todo!();
             },
             _ => panic!("Unsupported format: {:?}", color_encoding),
         }
