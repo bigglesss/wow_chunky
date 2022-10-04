@@ -2,7 +2,7 @@ use core::fmt::Debug;
 use std::io::{Read, Seek};
 use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct CAaBox {
     min: C3Vector,
@@ -81,7 +81,7 @@ pub fn token_parse<R: Read + Seek>(reader: &mut R, _ro: &ReadOptions, _: ()) -> 
     Ok(string)
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct ChunkWrapper {
     #[br(parse_with = token_parse)]
@@ -89,4 +89,13 @@ pub struct ChunkWrapper {
     pub size: u32,
     #[br(count = size)]
     pub data: Vec<u8>,
+}
+
+#[derive(Clone, Debug, BinRead)]
+#[br(little)]
+pub struct MVER {
+    /*
+        uint32_t version;
+    */
+    pub version: u32,
 }

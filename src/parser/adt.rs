@@ -6,15 +6,16 @@ use binread::BinReaderExt;
 use crate::error::Error;
 use crate::parser::{macros, wdt};
 use crate::types::chunks;
+use crate::types::shared;
 
 use super::{parse_chunk_data,parse_chunk_data_args};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ADT {
     pub filename: String,
     pub path: PathBuf,
 
-    pub mver: Option<chunks::MVER>,
+    pub mver: Option<shared::MVER>,
     pub mhdr: Option<chunks::MHDR>,
     pub mcin: Option<chunks::MCIN>,
     pub mtex: Option<chunks::MTEX>,
@@ -27,7 +28,7 @@ pub struct ADT {
     pub mcnk: Vec<chunks::MCNK>,
 }
 
-fn parse_adt_file(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<ADT, Error> {
+fn parse_adt_file(path: PathBuf, mphd_flags: &chunks::MPHDFlags) -> Result<ADT, Error> {
     let filename = path.file_name().ok_or(Error::File(path.clone()))?
         .to_string_lossy().to_string();
 
@@ -40,9 +41,9 @@ fn parse_adt_file(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<ADT, E
     };
 
     loop {
-        if let Some(chunk_wrapper) = file.read_le::<chunks::shared::ChunkWrapper>().ok() {
+        if let Some(chunk_wrapper) = file.read_le::<shared::ChunkWrapper>().ok() {
             match chunk_wrapper.token.as_str() {
-                "MVER" => macros::parse_chunk!(chunks::MVER, &chunk_wrapper.data, &mut parsed_adt.mver),
+                "MVER" => macros::parse_chunk!(shared::MVER, &chunk_wrapper.data, &mut parsed_adt.mver),
                 "MHDR" => macros::parse_chunk!(chunks::MHDR, &chunk_wrapper.data, &mut parsed_adt.mhdr),
                 "MCIN" => macros::parse_chunk!(chunks::MCIN, &chunk_wrapper.data, &mut parsed_adt.mcin),
                 "MTEX" => macros::parse_chunk!(chunks::MTEX, &chunk_wrapper.data, &mut parsed_adt.mtex),
@@ -65,7 +66,7 @@ fn parse_adt_file(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<ADT, E
 }
 
 impl ADT {
-    pub fn from_file(path: PathBuf, mphd_flags: chunks::MPHDFlags) -> Result<Self, Error> {
+    pub fn from_file(path: PathBuf, mphd_flags: &chunks::MPHDFlags) -> Result<Self, Error> {
         Ok(parse_adt_file(path, mphd_flags)?) 
     }
 
@@ -76,8 +77,19 @@ impl ADT {
             .join(adt_name);
 
         let wdt = wdt::WDT::from_file(wdt_filename)?;
-        let adt = ADT::from_file(adt_path, wdt.mphd.and_then(|chunk| Some(chunk.flags)).expect("WDT should have a valid MPHD chunk"))?;
+        let adt = ADT::from_file(adt_path, &wdt.mphd.and_then(|chunk| Some(chunk.flags)).expect("WDT should have a valid MPHD chunk"))?;
 
         Ok(adt)
+    }
+    
+    pub fn from_wdt(wdt: &wdt::WDT, x: u32, y: u32) -> Result<Self, Error> {
+        let adt_name = format!("{}_{}_{}.adt", wdt.path.file_stem().and_then(|n| n.to_str()).expect("WDT should have a extension."), x, y);
+        let adt_path = wdt.path
+            .parent().expect("WDT file should be in a folder with the ADT files.")
+            .join(adt_name);
+
+        let adt = ADT::from_file(adt_path, &wdt.mphd.as_ref().and_then(|chunk| Some(&chunk.flags)).expect("WDT should have a valid MPHD chunk"))?;
+
+        Ok(adt) 
     }
 }

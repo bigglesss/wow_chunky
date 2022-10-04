@@ -4,7 +4,7 @@ use std::io::{Read, Seek, SeekFrom};
 use bitvec::prelude::*;
 use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
 
-pub mod shared;
+use crate::types::shared;
 
 const MPHD_FLAG_USES_GLOBAL_MAP_OBJ: u32 = 0x01;
 const MPHD_FLAG_ADT_HAS_MCCV: u32 = 0x2;
@@ -15,7 +15,7 @@ const MPHD_FLAG_UPSIDE_DOWN_GROUND: u32 = 0x20;
 const MPHD_FLAG_UNK: u32 = 0x40;
 const MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING: u32 = 0x80;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MPHDFlags {
     pub has_height_texturing: bool,
 }
@@ -39,7 +39,7 @@ impl BinRead for MPHDFlags {
     }
 } 
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MPHD {
     /*
@@ -54,30 +54,21 @@ pub struct MPHD {
     pub _unused: u32,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MAINTile {
     pub has_adt: u32,
     pub flag_loaded: u32,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MAIN {
     #[br(count = 4096)]
     pub tiles: Vec<MAINTile>,
 }
 
-#[derive(Debug, BinRead)]
-#[br(little)]
-pub struct MVER {
-    /*
-        uint32_t version;
-    */
-    pub version: u32,
-}
-
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little, repr = u32)]
 pub enum MHDRFlags {
     NONE = 0,
@@ -85,7 +76,7 @@ pub enum MHDRFlags {
     NORTHREND = 2,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MHDR {
     /*
@@ -112,7 +103,7 @@ pub struct MHDR {
     pub flags: MHDRFlags,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MCIN {
     /*
@@ -137,7 +128,7 @@ pub struct MTEX {
     pub filenames: Vec<String>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MMDX {
     /*
@@ -147,7 +138,7 @@ pub struct MMDX {
     pub filenames: Vec<String>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MMID {
     /*
@@ -157,7 +148,7 @@ pub struct MMID {
     pub offsets: Vec<u32>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MWMO {
     /*
@@ -167,7 +158,7 @@ pub struct MWMO {
     pub filenames: Vec<String>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MWID {
     /*
@@ -177,7 +168,7 @@ pub struct MWID {
     pub offsets: Vec<u32>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little, repr = u16)]
 pub enum MDDFFlags {
     NONE = 0,
@@ -185,7 +176,7 @@ pub enum MDDFFlags {
     SHRUBBERY = 2,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MDDFPart {
     /*
@@ -207,21 +198,21 @@ pub struct MDDFPart {
     pub scale: u16,
     pub flags: MDDFFlags,
 }
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MDDF {
     #[br(parse_with = shared::read_until_end)]
     pub parts: Vec<MDDFPart>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little, repr = u16)]
 pub enum MODFFlags {
     NONE = 0,
     DESTROYABLE = 1,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MODFPart {
     /*
@@ -245,7 +236,7 @@ pub struct MODFPart {
     pub doodat_set: u16,
     pub name_set: u16,
 }
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MODF {
     #[br(parse_with = shared::read_until_end)]
@@ -254,7 +245,7 @@ pub struct MODF {
 
 const MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP: u32 = 0x200;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MCNKFlags {
     pub do_not_fix_alpha_map: bool,
 }
@@ -277,7 +268,7 @@ impl BinRead for MCNKFlags {
     }
 } 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MCNK {
     pub flags: MCNKFlags,
 
@@ -467,14 +458,14 @@ pub fn parse_heightmap(raw: Vec<f32>, offset:shared::C3Vector) -> Vec<shared::C3
     parsed
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little, import(offset:shared::C3Vector))]
 pub struct MCVT {
     #[br(count = 145, map = |raw: Vec<f32>| parse_heightmap(raw, offset))]
     pub heights: Vec<shared::C3Vector>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MCNREntry {
     pub x: i8,
@@ -482,7 +473,7 @@ pub struct MCNREntry {
     pub z: i8,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MCNR {
     #[br(count = 145)]
@@ -501,7 +492,7 @@ const MCLY_FLAG_USE_ALPHA: u32 = 0x100;
 const MCLY_FLAG_ALPHA_COMPRESSED: u32 = 0x200;
 const MCLY_FLAG_REFLECTION: u32 = 0x400;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MCLYFlags {
     pub animate_45: bool,
     pub animate_90: bool,
@@ -531,7 +522,7 @@ impl BinRead for MCLYFlags {
     }
 } 
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little)]
 pub struct MCLYLayer {
     pub texture_id: u32,
@@ -540,14 +531,14 @@ pub struct MCLYLayer {
     pub effect_id: u32,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little, import(n_layers: u32))]
 pub struct MCLY {
     #[br(count = n_layers)]
     pub layers: Vec<MCLYLayer>,
 }
 
-#[derive(Debug, BinRead)]
+#[derive(Clone, Debug, BinRead)]
 #[br(little, import(n_doodad_refs: u32, n_map_obj_refs: u32))]
 pub struct MCRF {
     #[br(count = n_doodad_refs)]
@@ -556,7 +547,7 @@ pub struct MCRF {
     n_map_obj_refs: Vec<u32>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MCALLayer {
     pub alpha_map: Vec<u8>,
 }
@@ -637,7 +628,7 @@ impl BinRead for MCALLayer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MCAL {
     pub layers: Vec<MCALLayer>,
 }

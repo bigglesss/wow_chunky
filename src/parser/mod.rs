@@ -1,3 +1,4 @@
+//! Parsing logic and base structs for all chunked file formats.
 use std::path::PathBuf;
 
 use binread::{BinReaderExt, io::Cursor};

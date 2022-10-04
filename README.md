@@ -35,9 +35,5 @@ Examples
     let wdt = wow_chunky::parser::wdt::WDT::from_file(wdt_path);
 
     // Then, using the flags we need from the WDT (required for heightmap parsing), parse the ADT at (31, 30).
-    let adt_path = PathBuf::from("./test_data/Azeroth//Azeroth_31_30.adt");
-    let mphd_flags = wdt.mphd
-        .and_then(|chunk| Some(chunk.flags))
-        .expect("WDT should have a valid MPHD chunk");
-    let adt = wow_chunky::parser::adt::ADT::from_file(adt_path, mphd_flags)
+    let adt = wow_chunky::parser::adt::ADT::from_wdt(wdt, 31, 30)
 ```
