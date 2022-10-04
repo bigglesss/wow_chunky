@@ -383,7 +383,7 @@ impl BinRead for MCNK {
         let mut mcal_layers: Vec<MCALLayer> = Vec::new();
         for l in mcly.layers.iter() {
             if l.flags.use_alpha {
-                mcal_layers.push(mcal_reader.read_le_args::<MCALLayer>((args.0, l.flags.alpha_compressed,))?);
+                mcal_layers.push(mcal_reader.read_le_args::<MCALLayer>((args.0, l.flags.alpha_compressed, flags.do_not_fix_alpha_map))?);
             }
         }
         let mcal: MCAL = MCAL { layers: mcal_layers };
@@ -553,18 +553,19 @@ pub struct MCALLayer {
 }
 
 impl BinRead for MCALLayer {
-    type Args = (bool, bool, );
+    type Args = (bool, bool, bool);
 
     fn read_options<R: Read + Seek>(
         reader: &mut R,
         options: &ReadOptions,
         args: Self::Args,
     ) -> BinResult<Self> {
-        let (full_size, compressed) = args;
+        let (full_size, compressed, do_not_fix_alpha_map) = args;
         
         let decompressed = match compressed {
             true => {
                 let mut data: Vec<u8> = Vec::new();
+                // TODO: Ignore any bytes over 4096.
                 loop {
                     if let Ok(count_and_mode) = reader.read_be::<u8>() {
                         let fill = count_and_mode & 0x80 == 0x80;
@@ -589,7 +590,7 @@ impl BinRead for MCALLayer {
                     }
                 }
 
-                data 
+                data
             },
             _ => {
                 let mut data = if full_size {vec![0; 4096]} else {vec![0; 2048]};
@@ -619,6 +620,20 @@ impl BinRead for MCALLayer {
 
                 alpha_map.push(left.load::<u8>());
                 alpha_map.push(right.load::<u8>());
+            }
+        }
+
+        if !do_not_fix_alpha_map {
+            for i in 0..alpha_map.len() {
+                // Replace the last column with the previous columns value.
+                if i > 0 && (i+1).rem_euclid(64) == 0 {
+                    alpha_map[i] = alpha_map[i-1];
+                }
+
+                // Replace the last row with the previous rows value.
+                if i > (4096 - 64) {
+                    alpha_map[i] = alpha_map[i-64];
+                }
             }
         }
 
