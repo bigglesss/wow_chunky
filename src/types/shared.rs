@@ -4,9 +4,16 @@ use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
 
 #[derive(Clone, Debug, BinRead)]
 #[br(little)]
+pub struct CRange {
+    pub min: f32,
+    pub max: f32,
+}
+
+#[derive(Clone, Debug, BinRead)]
+#[br(little)]
 pub struct CAaBox {
-    min: C3Vector,
-    max: C3Vector,
+    pub min: C3Vector,
+    pub max: C3Vector,
 }
 
 #[derive(Clone, Copy, Debug, BinRead)]
