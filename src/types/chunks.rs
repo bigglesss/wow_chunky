@@ -435,6 +435,8 @@ static ADT_SIZE: f32 = 533.0 + (1.0 / 3.0);
 static QUAD_SIZE: f32 = ADT_SIZE / 128.0;
 
 pub fn parse_heightmap(raw: Vec<f32>, offset:shared::C3Vector) -> Vec<shared::C3Vector> {
+    // TODO: This currently uses the distant view heightmap, which causes some irregularities.
+    // I also suspect the scaling is not the same as the blizz client, perhaps it need to be scaled up.
     let mut parsed: Vec<shared::C3Vector> = Vec::new();
     for (i, height) in raw.iter().enumerate() {
         // if i % 17 > 8, this is the inner part of a quad
