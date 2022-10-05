@@ -243,10 +243,24 @@ pub struct MODF {
     pub parts: Vec<MODFPart>,
 }
 
+const MCNK_FLAG_HAS_MCSH: u32 = 0x01;
+const MCNK_FLAG_IMPASS: u32 = 0x02;
+const MCNK_FLAG_LQ_RIVER: u32 = 0x04;
+const MCNK_FLAG_LQ_OCEAN: u32 = 0x08;
+const MCNK_FLAG_LQ_MAGMA: u32 = 0x10;
+const MCNK_FLAG_HAS_MCCV: u32 = 0x20;
+const MCNK_FLAG_UNK: u32 = 0x40;
 const MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP: u32 = 0x200;
 
 #[derive(Clone, Debug)]
 pub struct MCNKFlags {
+    pub has_mcsh: bool,
+    pub impass: bool,
+    pub lq_river: bool,
+    pub lq_ocean: bool,
+    pub lq_magma: bool,
+    pub has_mccv: bool,
+
     pub do_not_fix_alpha_map: bool,
 }
 
@@ -260,10 +274,23 @@ impl BinRead for MCNKFlags {
     ) -> binread::BinResult<Self> {
         let i: u32 = reader.read_le()?;
 
+        let has_mcsh = i & MCNK_FLAG_HAS_MCCV == MCNK_FLAG_HAS_MCCV;
+        let impass = i & MCNK_FLAG_IMPASS == MCNK_FLAG_IMPASS;
+        let lq_river = i & MCNK_FLAG_LQ_RIVER == MCNK_FLAG_LQ_RIVER;
+        let lq_ocean = i & MCNK_FLAG_LQ_OCEAN == MCNK_FLAG_LQ_OCEAN;
+        let lq_magma = i & MCNK_FLAG_LQ_MAGMA == MCNK_FLAG_LQ_MAGMA;
+        let has_mccv = i & MCNK_FLAG_HAS_MCCV == MCNK_FLAG_HAS_MCCV;
+
         let do_not_fix_alpha_map = i & MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP == MCNK_FLAG_DO_NOT_FIX_ALPHA_MAP;
 
         Ok(Self {
-            do_not_fix_alpha_map
+            has_mcsh,
+            impass,
+            lq_river,
+            lq_ocean,
+            lq_magma,
+            has_mccv,
+            do_not_fix_alpha_map,
         })
     }
 } 
@@ -311,6 +338,7 @@ pub struct MCNK {
     pub mcly: MCLY,
     pub mcrf: MCRF,
     pub mcal: MCAL,
+    pub mclq: MCLQ,
 }
 
 // BinRead has to be manually implemented instead of derived for MCNK,
@@ -388,6 +416,9 @@ impl BinRead for MCNK {
         }
         let mcal: MCAL = MCAL { layers: mcal_layers };
 
+        reader.seek(SeekFrom::Start(ofs_liquid.into()))?;
+        let mclq: MCLQ = reader.read_le_args((flags.lq_river, flags.lq_ocean, flags.lq_magma))?;
+
         Ok(Self {
             flags,
 
@@ -427,6 +458,7 @@ impl BinRead for MCNK {
             mcly,
             mcrf,
             mcal,
+            mclq,
         })
     }
 }
@@ -627,14 +659,14 @@ impl BinRead for MCALLayer {
 
         if !do_not_fix_alpha_map {
             for i in 0..alpha_map.len() {
-                // Replace the last column with the previous columns value.
-                if i > 0 && (i+1).rem_euclid(64) == 0 {
-                    alpha_map[i] = alpha_map[i-1];
-                }
-
                 // Replace the last row with the previous rows value.
                 if i > (4096 - 64) {
                     alpha_map[i] = alpha_map[i-64];
+                }
+
+                // Replace the last column with the previous columns value.
+                if i > 0 && (i+1).rem_euclid(64) == 0 {
+                    alpha_map[i] = alpha_map[i-1];
                 }
             }
         }
@@ -648,4 +680,41 @@ impl BinRead for MCALLayer {
 #[derive(Clone, Debug)]
 pub struct MCAL {
     pub layers: Vec<MCALLayer>,
+}
+
+#[derive(BinRead, Clone, Debug)]
+#[br(little)]
+pub struct MCLQRiverVert {
+    pub depth: char,
+    pub flow_0_pct: char,
+    pub flow_1_pct: char,
+    pub filler: char,
+    pub height: f32, 
+}
+
+#[derive(BinRead, Clone, Debug)]
+#[br(little)]
+pub struct MCLQOceanVert {
+    pub depth: char,
+    pub foam: char,
+    pub filler: char,
+    pub wet: char,
+}
+
+#[derive(BinRead, Clone, Debug)]
+#[br(little, import(lq_river: bool, lq_ocean: bool, lq_magma: bool))]
+pub struct MCLQ {
+    pub height: shared::CRange,
+
+    #[br(if(lq_river), count=9*9)]
+    pub river_verts: Vec<MCLQRiverVert>,
+
+    #[br(if(lq_ocean), count=9*9)]
+    pub ocean_verts: Vec<MCLQOceanVert>,
+
+    #[br(if(lq_magma), count=9*9)]
+    pub magma_verts: Vec<MCLQRiverVert>,
+
+    #[br(if(lq_river || lq_ocean || lq_magma), count=8*8)]
+    pub tiles: Vec<char>,
 }
