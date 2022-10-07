@@ -7,7 +7,7 @@
 //! |--------|------|-------|-------|------|
 //! | WDT    | ✔  | ?     | ?     |
 //! | ADT    | ✔  | ?     | ?     | 
-//! | BLP (DXT Compressd) | ✔  | ?     | ?     |
+//! | BLP (DXT Compressed) | ✔  | ?     | ?     |
 //! | BLP (Other) | ✖  | ✖     | ✖     | PALLETE / ARGB encoded BLPs are unhandled.
 //! | BLS | ✖  | ✖     | ✖     | Heavily corrupted.
 //!

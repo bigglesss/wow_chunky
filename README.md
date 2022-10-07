@@ -13,7 +13,7 @@ Supported formats
 |--------|------|-------|-------|------|
 | WDT    | :heavy_check_mark:  | :question:     | :question:     |
 | ADT    | :heavy_check_mark:  | :question:     | :question:     | 
-| BLP (DXT Compressd) | :heavy_check_mark:  | :question:     | :question:     |
+| BLP (DXT Compressed) | :heavy_check_mark:  | :question:     | :question:     |
 | BLP (Other) | :x:  | :x:     | :x:     | PALLETE / ARGB encoded BLPs are unhandled.
 | BLS | :x:  | :x:     | :x:     | Heavily corrupted.
 
