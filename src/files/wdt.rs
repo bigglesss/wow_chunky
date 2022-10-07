@@ -52,6 +52,10 @@ pub fn parse_wdt_file(path: PathBuf) -> Result<WDT, Error> {
 
 impl WDT {
     pub fn from_file(path: PathBuf) -> Result<Self, Error> {
+        if !path.exists() {
+            return Err(Error::FileNotFound(path))
+        }
+
         Ok(parse_wdt_file(path)?) 
     }
 }
