@@ -24,16 +24,16 @@ Examples
 -----------
 
 ```rust
-    // Load and parse the ADT at (25, 20) in the Azeroth map.
-    let wdt_path = PathBuf::from("./test_data/Azeroth/Azeroth.wdt");
-    let adt = wow_chunky::files::ADT::from_wdt_file(wdt_path, 25, 20).expect("Invalid WDT file");
+// Load and parse the ADT at (25, 20) in the Azeroth map.
+let wdt_path = PathBuf::from("./test_data/Azeroth/Azeroth.wdt");
+let adt = wow_chunky::files::ADT::from_wdt_file(wdt_path, 25, 20).expect("Invalid WDT file");
 ```
 
 ```rust
-    // Load and parse the WDT first.
-    let wdt_path = PathBuf::from("./test_data/Azeroth/Azeroth.wdt");
-    let wdt = wow_chunky::files::WDT::from_file(wdt_path).expect("Invalid WDT file");
+// Load and parse the WDT first.
+let wdt_path = PathBuf::from("./test_data/Azeroth/Azeroth.wdt");
+let wdt = wow_chunky::files::WDT::from_file(wdt_path).expect("Invalid WDT file");
 
-    // Then, using the flags we need from the WDT (required for heightmap parsing), parse the ADT at (31, 30).
-    let adt = wow_chunky::files::ADT::from_wdt(&wdt, 31, 30).unwrap()");
+// Then, using the flags we need from the WDT (required for heightmap parsing), parse the ADT at (31, 30).
+let adt = wow_chunky::files::ADT::from_wdt(&wdt, 31, 30).unwrap()");
 ```
