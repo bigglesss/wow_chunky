@@ -4,10 +4,7 @@ wow_chunky
 Overview
 -----------
 
-A pure Rust parsing library for World of Warcraft's chunked files, intended to support all TLV-chunked files from versions 1.12 to 3.3.5
-
-Currently assumes that chunks are structured according to 1.12 formats.
-
+A pure Rust parsing library for World of Warcraft's chunked files (and some additional binary files), targeting versions 1.12 to 3.3.5
 
 Supported formats
 ------------------
