@@ -16,7 +16,7 @@ pub struct CAaBox {
     pub max: C3Vector,
 }
 
-#[derive(Clone, Copy, Debug, BinRead)]
+#[derive(Clone, Copy, PartialEq, Debug, BinRead)]
 #[br(little)]
 pub struct C3Vector {
     pub x: f32,

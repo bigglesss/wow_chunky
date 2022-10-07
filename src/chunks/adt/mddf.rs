@@ -3,7 +3,7 @@ use binread::BinRead;
 use crate::chunks::shared;
 
 
-#[derive(Clone, Debug, BinRead)]
+#[derive(Clone, Debug, PartialEq, BinRead)]
 #[br(little, repr = u16)]
 pub enum MDDFFlags {
     NONE = 0,
@@ -11,7 +11,7 @@ pub enum MDDFFlags {
     SHRUBBERY = 2,
 }
 
-#[derive(Clone, Debug, BinRead)]
+#[derive(Clone, Debug, PartialEq, BinRead)]
 #[br(little)]
 pub struct MDDFPart {
     /*
@@ -38,4 +38,26 @@ pub struct MDDFPart {
 pub struct MDDF {
     #[br(parse_with = shared::read_until_end)]
     pub parts: Vec<MDDFPart>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use binread::BinReaderExt;
+
+    const RAW_MDDF: [u8; 36] = [ 0x67, 0x00, 0x00, 0x00, 0x8D, 0xF4, 0x02, 0x00, 0xB9, 0x40, 0x85, 0x46, 0x46, 0x39, 0x44, 0x42, 0x91, 0x21, 0x80, 0x46, 0x00, 0x00, 0x00, 0x00, 0x1C, 0xFC, 0xAD, 0x42, 0x00, 0x00, 0x00, 0x00, 0x34, 0x04, 0x00, 0x00 ];
+
+    #[test]
+    fn parse_valid_chunk() {
+        let mut cursor = std::io::Cursor::new(RAW_MDDF);
+        let chunk = cursor.read_le::<MDDFPart>().unwrap();
+        assert_eq!(chunk, MDDFPart {
+            name_id: 103,
+            unique_id: 193677,
+            position: shared::C3Vector { x: 17056.361, y: 49.05593, z: 16400.783 },
+            rotation: shared::C3Vector { x: 0.0, y: 86.9924, z: 0.0 },
+            scale: 1076,
+            flags: MDDFFlags::NONE,
+        })
+    }
 }
