@@ -1,247 +1,9 @@
-use core::fmt::Debug;
 use std::io::{Read, Seek, SeekFrom};
 
 use bitvec::prelude::*;
-use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
+use binread::{BinRead, ReadOptions, BinResult, BinReaderExt};
 
 use crate::types::shared;
-
-const MPHD_FLAG_USES_GLOBAL_MAP_OBJ: u32 = 0x01;
-const MPHD_FLAG_ADT_HAS_MCCV: u32 = 0x2;
-const MPHD_FLAG_ADT_HAS_BIG_ALPHA: u32 = 0x4;
-const MPHD_FLAG_ADT_HAS_DOODADS_SORTED_BY_SIZE: u32 = 0x8;
-const MPHD_FLAG_LIGHTING_VERTICES: u32 = 0x10;
-const MPHD_FLAG_UPSIDE_DOWN_GROUND: u32 = 0x20;
-const MPHD_FLAG_UNK: u32 = 0x40;
-const MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING: u32 = 0x80;
-
-#[derive(Clone, Debug)]
-pub struct MPHDFlags {
-    pub has_height_texturing: bool,
-}
-
-impl BinRead for MPHDFlags {
-    type Args = ();
-
-    fn read_options<R: std::io::Read + std::io::Seek>(
-        reader: &mut R,
-        options: &binread::ReadOptions,
-        args: Self::Args,
-    ) -> binread::BinResult<Self> {
-        let i: u32 = reader.read_le()?;
-
-        let unk = i & MPHD_FLAG_UNK == MPHD_FLAG_UNK;
-        let has_height_texturing = i & MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING == MPHD_FLAG_ADT_HAS_HEIGHT_TEXTURING;
-
-        Ok(Self {
-            has_height_texturing: has_height_texturing || unk,
-        })
-    }
-} 
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MPHD {
-    /*
-        uint32_t version;
-        uint32_t flags;
-        uint32_t something;
-        uint32_t unused[6];
-    */
-    pub version: u32,
-    pub flags: MPHDFlags,
-    pub _something: u32,
-    pub _unused: u32,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MAINTile {
-    pub has_adt: u32,
-    pub flag_loaded: u32,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MAIN {
-    #[br(count = 4096)]
-    pub tiles: Vec<MAINTile>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little, repr = u32)]
-pub enum MHDRFlags {
-    NONE = 0,
-    MFBO = 1,
-    NORTHREND = 2,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MHDR {
-    /*
-    enum MHDRFlags {
-        mhdr_MFBO = 1,                // contains a MFBO chunk.
-        mhdr_northrend = 2,           // is set for some northrend ones.
-    };
-    uint32_t flags;
-    uint32_t mcin;                 // MCIN*, Cata+: obviously gone. probably all offsets gone, except mh2o(which remains in root file).
-    uint32_t mtex;                 // MTEX*
-    uint32_t mmdx;                 // MMDX*
-    uint32_t mmid;                 // MMID*
-    uint32_t mwmo;                 // MWMO*
-    uint32_t mwid;                 // MWID*
-    uint32_t mddf;                 // MDDF*
-    uint32_t modf;                 // MODF*
-    uint32_t mfbo;                 // MFBO*   this is only set if flags & mhdr_MFBO.
-    uint32_t mh2o;                 // MH2O*
-    uint32_t mtxf;                 // MTXF*
-    uint8_t mamp_value;             // Cata+, explicit MAMP chunk overrides data
-    uint8_t padding[3];
-    uint32_t unused[3];
-    */
-    pub flags: MHDRFlags,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MCIN {
-    /*
-    uint32_t offset;               // absolute offset.
-    uint32_t size;                 // the size of the MCNK chunk, this is refering to.
-    uint32_t flags;                // always 0. only set in the client., FLAG_LOADED = 1
-    union
-    {
-        char pad[4];
-        uint32_t asyncId;            // not in the adt file. client use only
-    };
-    */
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MTEX {
-    /*
-    char filenames[0];              // zero-terminated strings with complete paths to textures. Referenced in MCLY.
-    */
-    #[br(parse_with = shared::zero_terminated_strings)]
-    pub filenames: Vec<String>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MMDX {
-    /*
-    char filenames[0];              // zero-terminated strings with complete paths to models. Referenced in MMID.
-    */
-    #[br(parse_with = shared::zero_terminated_strings)]
-    pub filenames: Vec<String>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MMID {
-    /*
-    uint32_t offsets[0];            // filename starting position in MMDX chunk. These entries are getting referenced in the MDDF chunk.
-    */
-    #[br(parse_with = shared::read_until_end)]
-    pub offsets: Vec<u32>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MWMO {
-    /*
-    char filenames[0];              // zero-terminated strings with complete paths to models. Referenced in MWID.
-    */
-    #[br(parse_with = shared::zero_terminated_strings)]
-    pub filenames: Vec<String>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MWID {
-    /*
-    uint32_t offsets[0];            // filename starting position in MWMO chunk. These entries are getting referenced in the MODF chunk.
-    */
-    #[br(parse_with = shared::read_until_end)]
-    pub offsets: Vec<u32>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little, repr = u16)]
-pub enum MDDFFlags {
-    NONE = 0,
-    BIODOME = 1,
-    SHRUBBERY = 2,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MDDFPart {
-    /*
-    uint32_t nameId;              // references an entry in the MMID chunk, specifying the model to use.
-                                     if flag mddf_entry_is_filedata_id is set, a file data id instead, ignoring MMID.
-    uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map. Blizzard has
-                                     these unique for the whole game.
-   shared::C3Vectorⁱ position;           // This is relative to a corner of the map. Subtract 17066 from the non vertical values and you should start to see
-                                     something that makes sense. You'll then likely have to negate one of the non vertical values in whatever
-                                     coordinate system you're using to finally move it into place.
-   shared::C3Vectorⁱ rotation;           // degrees. This is not the same coordinate system orientation like the ADT itself! (see history.)
-    uint16_t scale;               // 1024 is the default size equaling 1.0f.
-    uint16_t flags;               // values from enum MDDFFlags.
-    */
-    pub name_id: u32,
-    pub unique_id: u32,
-    pub position: shared::C3Vector,
-    pub rotation: shared::C3Vector,
-    pub scale: u16,
-    pub flags: MDDFFlags,
-}
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MDDF {
-    #[br(parse_with = shared::read_until_end)]
-    pub parts: Vec<MDDFPart>,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little, repr = u16)]
-pub enum MODFFlags {
-    NONE = 0,
-    DESTROYABLE = 1,
-}
-
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MODFPart {
-    /*
-    uint32_t nameId;              // references an entry in the MWID chunk, specifying the model to use.
-    uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map.
-   shared::C3Vectorⁱ position;
-   shared::C3Vectorⁱ rotation;           // same as in MDDF.
-    CAaBoxⁱ extents;              // position plus the transformed wmo bounding box. used for defining if they are rendered as well as collision.
-    uint16_t flags;               // values from enum MODFFlags.
-    uint16_t doodadSet;           // which WMO doodad set is used. Traditionally references WMO#MODS_chunk, if modf_use_sets_from_mwds is set, references #MWDR_.28Shadowlands.2B.29
-    uint16_t nameSet;             // which WMO name set is used. Used for renaming goldshire inn to northshire inn while using the same model.
-    uint16_t scale;               // Legion+: scale, 1024 means 1 (same as MDDF). Padding in 0.5.3 alpha.
-    */
-    pub name_id: u32,
-    pub unique_id: u32,
-    pub position: shared::C3Vector,
-    pub rotation: shared::C3Vector,
-    pub extends: shared::CAaBox,
-    pub scale: u16,
-    pub flags: MODFFlags,
-    pub doodat_set: u16,
-    pub name_set: u16,
-}
-#[derive(Clone, Debug, BinRead)]
-#[br(little)]
-pub struct MODF {
-    #[br(parse_with = shared::read_until_end)]
-    pub parts: Vec<MODFPart>,
-}
 
 const MCNK_FLAG_HAS_MCSH: u32 = 0x01;
 const MCNK_FLAG_IMPASS: u32 = 0x02;
@@ -317,7 +79,7 @@ pub struct MCNK {
 
     pub area_id: u32,
     pub n_map_obj_refs: u32,
-    pub holes_low_res: u32,
+    pub holes_low_res: u16,
 
     pub low_res_texture_map: Vec<u16>,
 
@@ -371,7 +133,8 @@ impl BinRead for MCNK {
 
         let area_id: u32 = reader.read_le()?;
         let n_map_obj_refs: u32 = reader.read_le()?;
-        let holes_low_res: u32 = reader.read_le()?;
+        let holes_low_res: u16 = reader.read_le()?;
+        let _unk: u16 = reader.read_le()?;
 
         // We have to manually create a ReadOptions and mutate it, as it is non-exhaustative.
         let mut vec_options = ReadOptions::default();
@@ -685,20 +448,28 @@ pub struct MCAL {
 #[derive(BinRead, Clone, Debug)]
 #[br(little)]
 pub struct MCLQRiverVert {
-    pub depth: char,
-    pub flow_0_pct: char,
-    pub flow_1_pct: char,
-    pub filler: char,
+    #[br(map = |d: char| d as u8)]
+    pub depth: u8,
+    #[br(map = |d: char| d as u8)]
+    pub flow_0_pct: u8,
+    #[br(map = |d: char| d as u8)]
+    pub flow_1_pct: u8,
+    #[br(map = |d: char| d as u8)]
+    pub filler: u8,
     pub height: f32, 
 }
 
 #[derive(BinRead, Clone, Debug)]
 #[br(little)]
 pub struct MCLQOceanVert {
-    pub depth: char,
-    pub foam: char,
-    pub filler: char,
-    pub wet: char,
+    #[br(map = |d: char| d as u8)]
+    pub depth: u8,
+    #[br(map = |d: char| d as u8)]
+    pub foam: u8,
+    #[br(map = |d: char| d as u8)]
+    pub filler: u8,
+    #[br(map = |d: char| d as u8)]
+    pub wet: u8,
 }
 
 #[derive(BinRead, Clone, Debug)]
@@ -715,6 +486,7 @@ pub struct MCLQ {
     #[br(if(lq_magma), count=9*9)]
     pub magma_verts: Vec<MCLQRiverVert>,
 
-    #[br(if(lq_river || lq_ocean || lq_magma), count=8*8)]
-    pub tiles: Vec<char>,
+    // Only parse if *any* liquid is present in the tile, and convert all chars into u8s.
+    #[br(if(lq_river || lq_ocean || lq_magma), count=8*8, map = |d: Vec<char>| d.iter().map(|d| *d as u8).collect() )]
+    pub tiles: Vec<u8>,
 }

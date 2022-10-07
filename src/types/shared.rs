@@ -106,3 +106,53 @@ pub struct MVER {
     */
     pub version: u32,
 }
+
+#[derive(Clone, Debug, BinRead)]
+#[br(little)]
+pub struct MWMO {
+    /*
+    char filenames[0];              // zero-terminated strings with complete paths to models. Referenced in MWID.
+    */
+    #[br(parse_with = zero_terminated_strings)]
+    pub filenames: Vec<String>,
+}
+
+#[derive(Clone, Debug, BinRead)]
+#[br(little, repr = u16)]
+pub enum MODFFlags {
+    NONE = 0,
+    DESTROYABLE = 1,
+}
+
+#[derive(Clone, Debug, BinRead)]
+#[br(little)]
+pub struct MODFPart {
+    /*
+    uint32_t nameId;              // references an entry in the MWID chunk, specifying the model to use.
+    uint32_t uniqueId;            // this ID should be unique for all ADTs currently loaded. Best, they are unique for the whole map.
+   shared::C3Vectorⁱ position;
+   shared::C3Vectorⁱ rotation;           // same as in MDDF.
+    CAaBoxⁱ extents;              // position plus the transformed wmo bounding box. used for defining if they are rendered as well as collision.
+    uint16_t flags;               // values from enum MODFFlags.
+    uint16_t doodadSet;           // which WMO doodad set is used. Traditionally references WMO#MODS_chunk, if modf_use_sets_from_mwds is set, references #MWDR_.28Shadowlands.2B.29
+    uint16_t nameSet;             // which WMO name set is used. Used for renaming goldshire inn to northshire inn while using the same model.
+    uint16_t scale;               // Legion+: scale, 1024 means 1 (same as MDDF). Padding in 0.5.3 alpha.
+    */
+    pub name_id: u32,
+    pub unique_id: u32,
+    pub position: C3Vector,
+    pub rotation: C3Vector,
+    pub extends: CAaBox,
+    pub scale: u16,
+    pub flags: MODFFlags,
+    pub doodat_set: u16,
+    pub name_set: u16,
+}
+
+#[derive(Clone, Debug, BinRead)]
+#[br(little)]
+pub struct MODF {
+    #[br(parse_with = read_until_end)]
+    pub parts: Vec<MODFPart>,
+}
+

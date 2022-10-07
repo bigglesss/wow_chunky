@@ -8,8 +8,11 @@ use crate::types::blp;
 use crate::types::bls;
 
 mod macros;
-pub mod adt;
-pub mod wdt;
+mod adt;
+mod wdt;
+
+pub use adt::ADT;
+pub use wdt::WDT;
 
 fn parse_chunk_data<T: binread::BinRead>(chunk_data: &Vec<u8>) -> Result<T, Error> {
     let mut chunk_data_cursor = Cursor::new(chunk_data);

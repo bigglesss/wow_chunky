@@ -64,7 +64,7 @@ impl BinRead for Mipmap {
 
         match color_encoding {
             ColorEncoding::PALETTE => {
-                todo!();
+                todo!("PALETTE encoding for BLPs is not implemented!");
             },
             ColorEncoding::DXT => {
                 let format = match alpha_compression {
@@ -94,7 +94,7 @@ impl BinRead for Mipmap {
                 Ok(Self { decompressed })
             },
             ColorEncoding::ARGB8888 | ColorEncoding::ARGB8888_=> {
-                todo!();
+                todo!("ARGB encoding for BLPs is not implemented!");
             },
             _ => panic!("Unsupported format: {:?}", color_encoding),
         }
