@@ -33,12 +33,13 @@ pub struct ADT {
 }
 
 fn parse_adt_file(path: PathBuf, mphd_flags: &chunks::wdt::MPHDFlags) -> Result<ADT, Error> {
-    let filename = path.file_stem().ok_or(Error::File(path.clone()))?
+    let filename = path.file_stem().ok_or(Error::InvalidFilename(path.clone()))?
         .to_string_lossy().to_string();
 
+    // Figure out the coordinates of the ADT block from the filename, as it isn't available in the file itself.
     let split: Vec<&str> = filename.split("_").collect();
-    let x: u32 = split[split.len() - 2].parse().map_err(|_| Error::File(path.clone()))?;
-    let y: u32 = split[split.len() - 1].parse().map_err(|_| Error::File(path.clone()))?;
+    let x: u32 = split[split.len() - 2].parse().map_err(|_| Error::MissingCoordinates(path.clone()))?;
+    let y: u32 = split[split.len() - 1].parse().map_err(|_| Error::MissingCoordinates(path.clone()))?;
 
     let mut file = File::open(&path)?;
 
@@ -77,6 +78,10 @@ fn parse_adt_file(path: PathBuf, mphd_flags: &chunks::wdt::MPHDFlags) -> Result<
 
 impl ADT {
     pub fn from_file(path: PathBuf, mphd_flags: &chunks::wdt::MPHDFlags) -> Result<Self, Error> {
+        if !path.exists() {
+            return Err(Error::FileNotFound(path))
+        }
+
         Ok(parse_adt_file(path, mphd_flags)?) 
     }
 

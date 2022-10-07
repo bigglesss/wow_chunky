@@ -17,7 +17,7 @@
 //! ```rust
 //!     // Load and parse the ADT at (25, 20) in the Azeroth map.
 //!     let wdt_path = PathBuf::from("./test_data/Azeroth/Azeroth.wdt");
-//!     let adt = wow_chunky::parser::adt::ADT::from_wdt_file(wdt_path, 25, 20);
+//!     let adt = wow_chunky::files::ADT::from_wdt_file(wdt_path, 25, 20);
 //! ```
 //! 
 //! ```rust
@@ -26,7 +26,7 @@
 //!     let wdt = wow_chunky::parser::wdt::WDT::from_file(wdt_path);
 //! 
 //!     // Then, using the flags we need from the WDT (required for heightmap parsing), parse the ADT at (31, 30).
-//!     let adt = wow_chunky::parser::adt::ADT::from_wdt(wdt, 31, 30)
+//!     let adt = wow_chunky::files::ADT::from_wdt(wdt, 31, 30)
 //! ```
 
 pub mod chunks;

@@ -23,7 +23,7 @@ pub struct WDT {
 }
 
 pub fn parse_wdt_file(path: PathBuf) -> Result<WDT, Error> {
-    let filename = path.file_name().ok_or(Error::File(path.clone()))?
+    let filename = path.file_name().ok_or(Error::InvalidFilename(path.clone()))?
         .to_string_lossy().to_string();
 
     let mut file = File::open(&path)?;
