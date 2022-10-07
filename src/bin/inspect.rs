@@ -3,9 +3,9 @@ use image::{RgbImage, Rgb, RgbaImage};
 
 use std::path::PathBuf;
 
-mod types;
-mod error;
-mod parser;
+extern crate wow_chunky;
+
+use wow_chunky::{types, error, parser};
 
 #[derive(Parser)]
 struct Cli {

@@ -1,4 +1,4 @@
-//! Structs used to deserialise individual chunks.
+//! Structs used to deserialise individual binary chunks.
 
 pub mod blp;
 pub mod bls;
