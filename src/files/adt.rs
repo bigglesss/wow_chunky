@@ -5,10 +5,10 @@ use binread::BinReaderExt;
 
 use crate::error::Error;
 
-use crate::parser::macros;
-use crate::parser::wdt;
+use crate::files::macros;
+use crate::files::wdt;
 
-use crate::types;
+use crate::chunks;
 
 use super::{parse_chunk_data, parse_chunk_data_args};
 
@@ -19,20 +19,20 @@ pub struct ADT {
     pub x: u32,
     pub y: u32,
 
-    pub mver: Option<types::shared::MVER>,
-    pub mhdr: Option<types::adt::MHDR>,
-    pub mcin: Option<types::adt::MCIN>,
-    pub mtex: Option<types::adt::MTEX>,
-    pub mmdx: Option<types::adt::MMDX>,
-    pub mmid: Option<types::adt::MMID>,
-    pub mwmo: Option<types::shared::MWMO>,
-    pub mwid: Option<types::adt::MWID>,
-    pub mddf: Option<types::adt::MDDF>,
-    pub modf: Option<types::shared::MODF>,
-    pub mcnk: Vec<types::adt::MCNK>,
+    pub mver: Option<chunks::shared::MVER>,
+    pub mhdr: Option<chunks::adt::MHDR>,
+    pub mcin: Option<chunks::adt::MCIN>,
+    pub mtex: Option<chunks::adt::MTEX>,
+    pub mmdx: Option<chunks::adt::MMDX>,
+    pub mmid: Option<chunks::adt::MMID>,
+    pub mwmo: Option<chunks::shared::MWMO>,
+    pub mwid: Option<chunks::adt::MWID>,
+    pub mddf: Option<chunks::adt::MDDF>,
+    pub modf: Option<chunks::shared::MODF>,
+    pub mcnk: Vec<chunks::adt::MCNK>,
 }
 
-fn parse_adt_file(path: PathBuf, mphd_flags: &types::wdt::MPHDFlags) -> Result<ADT, Error> {
+fn parse_adt_file(path: PathBuf, mphd_flags: &chunks::wdt::MPHDFlags) -> Result<ADT, Error> {
     let filename = path.file_stem().ok_or(Error::File(path.clone()))?
         .to_string_lossy().to_string();
 
@@ -51,20 +51,20 @@ fn parse_adt_file(path: PathBuf, mphd_flags: &types::wdt::MPHDFlags) -> Result<A
     };
 
     loop {
-        if let Some(chunk_wrapper) = file.read_le::<types::shared::ChunkWrapper>().ok() {
+        if let Some(chunk_wrapper) = file.read_le::<chunks::shared::ChunkWrapper>().ok() {
             match chunk_wrapper.token.as_str() {
-                "MVER" => macros::parse_chunk!(types::shared::MVER, &chunk_wrapper.data, &mut parsed_adt.mver),
-                "MHDR" => macros::parse_chunk!(types::adt::MHDR, &chunk_wrapper.data, &mut parsed_adt.mhdr),
-                "MCIN" => macros::parse_chunk!(types::adt::MCIN, &chunk_wrapper.data, &mut parsed_adt.mcin),
-                "MTEX" => macros::parse_chunk!(types::adt::MTEX, &chunk_wrapper.data, &mut parsed_adt.mtex),
-                "MMDX" => macros::parse_chunk!(types::adt::MMDX, &chunk_wrapper.data, &mut parsed_adt.mmdx),
-                "MMID" => macros::parse_chunk!(types::adt::MMID, &chunk_wrapper.data, &mut parsed_adt.mmid),
-                "MWMO" => macros::parse_chunk!(types::shared::MWMO, &chunk_wrapper.data, &mut parsed_adt.mwmo),
-                "MWID" => macros::parse_chunk!(types::adt::MWID, &chunk_wrapper.data, &mut parsed_adt.mwid),
-                "MDDF" => macros::parse_chunk!(types::adt::MDDF, &chunk_wrapper.data, &mut parsed_adt.mddf),
-                "MODF" => macros::parse_chunk!(types::shared::MODF, &chunk_wrapper.data, &mut parsed_adt.modf),
+                "MVER" => macros::parse_chunk!(chunks::shared::MVER, &chunk_wrapper.data, &mut parsed_adt.mver),
+                "MHDR" => macros::parse_chunk!(chunks::adt::MHDR, &chunk_wrapper.data, &mut parsed_adt.mhdr),
+                "MCIN" => macros::parse_chunk!(chunks::adt::MCIN, &chunk_wrapper.data, &mut parsed_adt.mcin),
+                "MTEX" => macros::parse_chunk!(chunks::adt::MTEX, &chunk_wrapper.data, &mut parsed_adt.mtex),
+                "MMDX" => macros::parse_chunk!(chunks::adt::MMDX, &chunk_wrapper.data, &mut parsed_adt.mmdx),
+                "MMID" => macros::parse_chunk!(chunks::adt::MMID, &chunk_wrapper.data, &mut parsed_adt.mmid),
+                "MWMO" => macros::parse_chunk!(chunks::shared::MWMO, &chunk_wrapper.data, &mut parsed_adt.mwmo),
+                "MWID" => macros::parse_chunk!(chunks::adt::MWID, &chunk_wrapper.data, &mut parsed_adt.mwid),
+                "MDDF" => macros::parse_chunk!(chunks::adt::MDDF, &chunk_wrapper.data, &mut parsed_adt.mddf),
+                "MODF" => macros::parse_chunk!(chunks::shared::MODF, &chunk_wrapper.data, &mut parsed_adt.modf),
                 "MCNK" => {
-                    let chunk = parse_chunk_data_args::<types::adt::MCNK>(&chunk_wrapper.data, (mphd_flags.has_height_texturing, ))?;
+                    let chunk = parse_chunk_data_args::<chunks::adt::MCNK>(&chunk_wrapper.data, (mphd_flags.has_height_texturing, ))?;
                     parsed_adt.mcnk.push(chunk);
                 },
                 _ => panic!("Unknown chunk type {}!", chunk_wrapper.token),
@@ -76,7 +76,7 @@ fn parse_adt_file(path: PathBuf, mphd_flags: &types::wdt::MPHDFlags) -> Result<A
 }
 
 impl ADT {
-    pub fn from_file(path: PathBuf, mphd_flags: &types::wdt::MPHDFlags) -> Result<Self, Error> {
+    pub fn from_file(path: PathBuf, mphd_flags: &chunks::wdt::MPHDFlags) -> Result<Self, Error> {
         Ok(parse_adt_file(path, mphd_flags)?) 
     }
 

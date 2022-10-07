@@ -29,6 +29,6 @@
 //!     let adt = wow_chunky::parser::adt::ADT::from_wdt(wdt, 31, 30)
 //! ```
 
-pub mod types;
-pub mod parser;
+pub mod chunks;
+pub mod files;
 pub mod error;

@@ -1,6 +1,6 @@
 use binread::BinRead;
 
-use crate::types::shared;
+use crate::chunks::shared;
 
 
 #[derive(Clone, Debug, BinRead)]

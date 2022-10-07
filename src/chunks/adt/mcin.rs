@@ -13,4 +13,7 @@ pub struct MCIN {
         uint32_t asyncId;            // not in the adt file. client use only
     };
     */
+    offset: u32,
+    size: u32,
+    flags: u32,
 }

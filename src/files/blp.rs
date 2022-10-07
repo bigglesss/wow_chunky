@@ -1,7 +1,9 @@
 use core::fmt::Debug;
-use std::{io::{Read, Seek, SeekFrom}, iter::zip};
+use std::{io::{Read, Seek, SeekFrom, Cursor}, iter::zip, path::PathBuf};
 
 use binread::{BinRead, BinReaderExt, BinResult, ReadOptions};
+
+use crate::error::Error;
 
 #[derive(Debug, BinRead)]
 #[br(little)]
@@ -169,5 +171,18 @@ impl BinRead for BLP {
 
             mipmaps,
         })
+    }
+}
+
+impl TryFrom<PathBuf> for BLP {
+    type Error = Error;
+
+    fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
+        let file = std::fs::read(path).map_err(Error::IO)?;
+
+        let mut cursor = Cursor::new(file);
+
+        let parsed_blp: Self = cursor.read_le()?;
+        return Ok(parsed_blp);
     }
 }

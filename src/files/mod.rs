@@ -4,15 +4,17 @@ use std::path::PathBuf;
 use binread::{BinReaderExt, io::Cursor};
 
 use crate::error::Error;
-use crate::types::blp;
-use crate::types::bls;
 
 mod macros;
 mod adt;
 mod wdt;
+mod blp;
+mod bls;
 
 pub use adt::ADT;
 pub use wdt::WDT;
+pub use blp::BLP;
+pub use bls::BLS;
 
 fn parse_chunk_data<T: binread::BinRead>(chunk_data: &Vec<u8>) -> Result<T, Error> {
     let mut chunk_data_cursor = Cursor::new(chunk_data);
@@ -26,15 +28,6 @@ fn parse_chunk_data_args<T: binread::BinRead>(chunk_data: &Vec<u8>, args: T::Arg
     let chunk_data: T = chunk_data_cursor.read_le_args(args).map_err(Error::Unknown)?;
 
     Ok(chunk_data)
-}
-
-pub fn parse_blp(path: PathBuf) -> Result<blp::BLP, Error> {
-    let file = std::fs::read(path).map_err(Error::IO)?;
-
-    let mut cursor = Cursor::new(file);
-
-    let parsed_blp: blp::BLP = cursor.read_le()?;
-    return Ok(parsed_blp);
 }
 
 pub fn parse_bls(path: PathBuf) -> Result<bls::BLS, Error> {

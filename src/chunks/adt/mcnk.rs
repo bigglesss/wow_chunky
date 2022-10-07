@@ -3,7 +3,7 @@ use std::io::{Read, Seek, SeekFrom};
 use bitvec::prelude::*;
 use binread::{BinRead, ReadOptions, BinResult, BinReaderExt};
 
-use crate::types::shared;
+use crate::chunks::shared;
 
 const MCNK_FLAG_HAS_MCSH: u32 = 0x01;
 const MCNK_FLAG_IMPASS: u32 = 0x02;

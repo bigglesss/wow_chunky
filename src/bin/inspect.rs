@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 extern crate wow_chunky;
 
-use wow_chunky::{types, error, parser};
+use wow_chunky::{chunks, files};
 
 #[derive(Parser)]
 struct Cli {
@@ -32,11 +32,11 @@ fn main() {
 
     if let Some(extension) = file_path.extension() {
         if extension == "adt" {
-            let adt = parser::ADT::from_file(file_path, &types::wdt::MPHDFlags{ has_height_texturing: false }).unwrap();
+            let adt = files::ADT::from_file(file_path, &chunks::wdt::MPHDFlags{ has_height_texturing: false }).unwrap();
             println!("{:#?}", adt);
         } else if extension == "wdt" {
             if let (Some(x), Some(y)) = (cli.x, cli.y) {
-                let adt = parser::ADT::from_wdt_file(file_path, x, y).unwrap();
+                let adt = files::ADT::from_wdt_file(file_path, x, y).unwrap();
 
                 for c in adt.mcnk.iter() {
                     if Some(c.x) == cli.chunk_x && Some(c.y) == cli.chunk_y {
@@ -57,11 +57,11 @@ fn main() {
                     }
                 }
             } else {
-                let wdt = parser::WDT::from_file(file_path).unwrap();
+                let wdt = files::WDT::from_file(file_path).unwrap();
                 println!("{:#?}", wdt);
             }
         } else if extension == "blp" {
-            let blp = parser::parse_blp(file_path.clone()).unwrap();
+            let blp = files::BLP::try_from(file_path.clone()).unwrap();
 
             for (i, data) in blp.mipmaps.iter().enumerate() {
                 let img = RgbaImage::from_raw(blp.width, blp.height, data.decompressed.clone()).unwrap();
@@ -69,7 +69,7 @@ fn main() {
                 img.save_with_format(format!("{:?}_{}.png", name, i), image::ImageFormat::Png).unwrap();
             }
         } else if extension == "bls" {
-            let bls = parser::parse_bls(file_path).unwrap();
+            let bls = files::BLS::try_from(file_path).unwrap();
             println!("{:#?}", bls);
         }
     }
