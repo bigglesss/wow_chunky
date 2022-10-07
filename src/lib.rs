@@ -6,7 +6,7 @@
 //! | Format | 1.12 | 2.4.3 | 3.3.5 | Note |
 //! |--------|------|-------|-------|------|
 //! | WDT    | ✔  | ?     | ?     |
-//! | ADT    | ✔  | ?     | ?     | No water (MCLQ) parsing yet.
+//! | ADT    | ✔  | ?     | ?     | 
 //! | BLP (DXT Compressd) | ✔  | ?     | ?     |
 //! | BLP (Other) | ✖  | ✖     | ✖     | PALLETE / ARGB encoded BLPs are unhandled.
 //! | BLS | ✖  | ✖     | ✖     | Heavily corrupted.

@@ -15,7 +15,7 @@ Supported formats
 | Format | 1.12 | 2.4.3 | 3.3.5 | Note |
 |--------|------|-------|-------|------|
 | WDT    | :heavy_check_mark:  | :question:     | :question:     |
-| ADT    | :heavy_check_mark:  | :question:     | :question:     | No water (MCLQ) parsing yet.
+| ADT    | :heavy_check_mark:  | :question:     | :question:     | 
 | BLP (DXT Compressd) | :heavy_check_mark:  | :question:     | :question:     |
 | BLP (Other) | :x:  | :x:     | :x:     | PALLETE / ARGB encoded BLPs are unhandled.
 | BLS | :x:  | :x:     | :x:     | Heavily corrupted.
